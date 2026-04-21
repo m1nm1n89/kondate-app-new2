@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const MAX_LENGTH = 500;
 const ERROR_MESSAGE = "提案の取得に失敗しました。もう一度お試しください。";
+const GEMINI_MODELS = ["gemini-3-flash", "gemini-2.5-flash-lite"];
 const PROMPT_TEMPLATE = `あなたは家庭料理の専門家です。
 以下の食材を使って、今日の献立を3つ提案してください。
 
@@ -30,18 +31,29 @@ export async function POST(request: Request) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const prompt = PROMPT_TEMPLATE.replace("{ingredientsをここに入れる}", ingredients);
+    let suggestion = "";
 
-    const result = await model.generateContent(prompt);
-    const suggestion = result.response.text().trim();
+    for (const modelName of GEMINI_MODELS) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        suggestion = result.response.text().trim();
+        if (suggestion) {
+          break;
+        }
+      } catch (modelError) {
+        console.error(`Gemini model failed: ${modelName}`, modelError);
+      }
+    }
 
     if (!suggestion) {
       return NextResponse.json({ error: ERROR_MESSAGE }, { status: 500 });
     }
 
     return NextResponse.json({ suggestion });
-  } catch {
+  } catch (error) {
+    console.error("Gemini API error:", error);
     return NextResponse.json({ error: ERROR_MESSAGE }, { status: 500 });
   }
 }
