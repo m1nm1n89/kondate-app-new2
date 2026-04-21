@@ -1,7 +1,6 @@
 # 献立提案アプリ
 
-冷蔵庫にある食材を入力すると、献立案を提案する Next.js アプリです。  
-現在は API キー未設定でも確認できるよう、サーバー側でダミーの3パターン献立からランダム返却する実装になっています。
+冷蔵庫にある食材を入力すると、Gemini APIで献立案を提案する Next.js アプリです。
 
 ## 技術スタック
 
@@ -26,7 +25,7 @@ npm install
 プロジェクト直下に `.env.local` を作成して、以下を設定してください。
 
 ```env
-ANTHROPIC_API_KEY=ここにAnthropicのAPIキーを貼り付ける
+GEMINI_API_KEY=ここにGeminiのAPIキーを貼り付ける
 ```
 
 > `.env.local` は `.gitignore` に含まれており、Git 管理されません。
@@ -50,12 +49,12 @@ npm run build
 1. GitHub などにリポジトリを push
 2. Vercel ダッシュボードで `New Project` から対象リポジトリを選択
 3. `Environment Variables` に以下を追加
-   - `ANTHROPIC_API_KEY` = Anthropic の API キー
+   - `GEMINI_API_KEY` = Gemini の API キー
 4. Deploy 実行
 
 ### 環境変数設定の補足
 
-- Preview / Production どちらにも `ANTHROPIC_API_KEY` を設定してください。
+- Preview / Production どちらにも `GEMINI_API_KEY` を設定してください。
 - API キーはサーバー側 Route Handler でのみ利用し、ブラウザには渡しません。
 
 ## セキュリティ方針
