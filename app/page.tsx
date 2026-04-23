@@ -7,7 +7,8 @@ import MealSuggestion from "@/components/MealSuggestion";
 const MAX_LENGTH = 500;
 const ERROR_MESSAGE = "提案の取得に失敗しました。もう一度お試しください。";
 const HISTORY_STORAGE_KEY = "kondate_history_v1";
-const MAX_HISTORY_ITEMS = 5;
+const MAX_HISTORY_ITEMS = 10;
+const MOSHIMO_RAKUTEN_ID = process.env.NEXT_PUBLIC_MOSHIMO_RAKUTEN_ID;
 
 type ShoppingItem = {
   name: string;
@@ -99,8 +100,15 @@ const formatDateTime = (iso: string) => {
 const buildAmazonSearchUrl = (keyword: string) =>
   `https://www.amazon.co.jp/s?k=${encodeURIComponent(keyword)}`;
 
-const buildRakutenSearchUrl = (keyword: string) =>
-  `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(keyword)}/`;
+const buildRakutenSearchUrl = (keyword: string) => {
+  const encodedKeyword = encodeURIComponent(keyword);
+  const normalRakutenUrl = `https://search.rakuten.co.jp/search/mall/${encodedKeyword}/`;
+  if (!MOSHIMO_RAKUTEN_ID) {
+    return normalRakutenUrl;
+  }
+
+  return `https://af.moshimo.com/af/c/click?a_id=${encodeURIComponent(MOSHIMO_RAKUTEN_ID)}&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fsearch.rakuten.co.jp%2Fsearch%2Fmall%2F${encodedKeyword}%2F`;
+};
 
 export default function Home() {
   const [ingredients, setIngredients] = useState("");
