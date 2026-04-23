@@ -103,24 +103,15 @@ const buildAmazonSearchUrl = (keyword: string) =>
 const buildRakutenSearchUrl = (keyword: string) => {
   const normalizedKeyword = keyword.trim();
   const normalRakutenUrl = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(normalizedKeyword)}/`;
-  const rawId = MOSHIMO_RAKUTEN_ID?.trim();
-  const id = rawId?.replace(/^"+|"+$/g, "");
-  const isValidId = Boolean(id && /^\d+$/.test(id));
+  const id = MOSHIMO_RAKUTEN_ID?.trim();
+  const affiliateBaseUrl = `https://af.moshimo.com/af/c/click?a_id=${id}&p_id=54&pc_id=54&pl_id=616`;
 
-  console.log("[Rakuten Affiliate] NEXT_PUBLIC_MOSHIMO_RAKUTEN_ID(raw):", rawId ?? "(undefined)");
-  console.log("[Rakuten Affiliate] a_id(normalized):", id ?? "(undefined)", "valid:", isValidId);
-
-  if (!isValidId) {
-    console.log("[Rakuten Affiliate] a_id is missing/invalid. Fallback to normal Rakuten URL:", normalRakutenUrl);
+  if (!id) {
     return normalRakutenUrl;
   }
 
-  const rakutenSearchUrl = `https://search.rakuten.co.jp/search/mall/${normalizedKeyword}/`;
-  const affiliateUrl = `https://af.moshimo.com/af/c/click?a_id=${id}&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenSearchUrl)}`;
-
-  console.log("[Rakuten Affiliate] Built moshimo URL:", affiliateUrl);
-
-  return affiliateUrl;
+  const searchUrl = `https://search.rakuten.co.jp/search/mall/${normalizedKeyword}/`;
+  return `${affiliateBaseUrl}&url=${encodeURIComponent(searchUrl)}`;
 };
 
 export default function Home() {
