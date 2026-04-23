@@ -103,12 +103,15 @@ const buildAmazonSearchUrl = (keyword: string) =>
 const buildRakutenSearchUrl = (keyword: string) => {
   const normalizedKeyword = keyword.trim();
   const normalRakutenUrl = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(normalizedKeyword)}/`;
-  const id = MOSHIMO_RAKUTEN_ID?.trim();
+  const rawId = MOSHIMO_RAKUTEN_ID?.trim();
+  const id = rawId?.replace(/^"+|"+$/g, "");
+  const isValidId = Boolean(id && /^\d+$/.test(id));
 
-  console.log("[Rakuten Affiliate] NEXT_PUBLIC_MOSHIMO_RAKUTEN_ID:", id ?? "(undefined)");
+  console.log("[Rakuten Affiliate] NEXT_PUBLIC_MOSHIMO_RAKUTEN_ID(raw):", rawId ?? "(undefined)");
+  console.log("[Rakuten Affiliate] a_id(normalized):", id ?? "(undefined)", "valid:", isValidId);
 
-  if (!id) {
-    console.log("[Rakuten Affiliate] a_id is missing. Fallback to normal Rakuten URL:", normalRakutenUrl);
+  if (!isValidId) {
+    console.log("[Rakuten Affiliate] a_id is missing/invalid. Fallback to normal Rakuten URL:", normalRakutenUrl);
     return normalRakutenUrl;
   }
 
