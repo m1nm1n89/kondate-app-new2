@@ -96,6 +96,12 @@ const formatDateTime = (iso: string) => {
   });
 };
 
+const buildAmazonSearchUrl = (keyword: string) =>
+  `https://www.amazon.co.jp/s?k=${encodeURIComponent(keyword)}`;
+
+const buildRakutenSearchUrl = (keyword: string) =>
+  `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(keyword)}/`;
+
 export default function Home() {
   const [ingredients, setIngredients] = useState("");
   const [currentMeal, setCurrentMeal] = useState<MealHistoryItem | null>(null);
@@ -241,6 +247,9 @@ export default function Home() {
       {currentMeal ? (
         <>
           <MealSuggestion suggestion={currentMeal.suggestion} onRetry={handleRetry} />
+          <p className="mt-3 px-1 text-xs leading-relaxed text-gray-500">
+            ※本献立はAIによって自動生成されています。食材のアレルギー、消費期限、調理時の安全については必ずご自身で確認の上、ご利用ください。本サイトの利用により生じた損害について、当サイトは一切の責任を負いません。
+          </p>
 
           <section className="mt-4 w-full rounded-2xl border border-terracotta/30 bg-white p-5 shadow-sm">
             <h3 className="mb-3 text-lg font-bold text-deepGreen">お買い物リスト</h3>
@@ -250,14 +259,14 @@ export default function Home() {
                   const checked = Boolean(checkedItems[index]);
                   return (
                     <li key={`${item.name}-${index}`}>
-                      <label
+                      <div
                         className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border p-3 transition ${
                           checked
                             ? "border-deepGreen/20 bg-deepGreen/5"
                             : "border-deepGreen/15 bg-white hover:bg-deepGreen/5"
                         }`}
                       >
-                        <span className="flex items-center gap-3">
+                        <label className="flex cursor-pointer items-center gap-3">
                           <input
                             type="checkbox"
                             checked={checked}
@@ -267,11 +276,31 @@ export default function Home() {
                           <span className={checked ? "text-base text-deepGreen/60 line-through" : "text-base text-deepGreen"}>
                             {item.name}
                           </span>
-                        </span>
-                        <span className={checked ? "text-sm text-deepGreen/50 line-through" : "text-sm text-deepGreen/80"}>
-                          {item.amount}
-                        </span>
-                      </label>
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <span className={checked ? "text-sm text-deepGreen/50 line-through" : "text-sm text-deepGreen/80"}>
+                            {item.amount}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={buildAmazonSearchUrl(item.name)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="rounded-md border border-deepGreen/20 px-2 py-1 text-xs font-semibold text-deepGreen/80 transition hover:bg-deepGreen/10"
+                            >
+                              Amazon
+                            </a>
+                            <a
+                              href={buildRakutenSearchUrl(item.name)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="rounded-md border border-deepGreen/20 px-2 py-1 text-xs font-semibold text-deepGreen/80 transition hover:bg-deepGreen/10"
+                            >
+                              楽天
+                            </a>
+                          </div>
+                        </div>
+                      </div>
                     </li>
                   );
                 })}
