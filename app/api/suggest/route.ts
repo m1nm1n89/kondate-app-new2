@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const MAX_LENGTH = 500;
 const ERROR_MESSAGE = "提案の取得に失敗しました。もう一度お試しください。";
-const GEMINI_MODELS = ["gemini-3-flash", "gemini-2.5-flash-lite"];
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
 const PROMPT_TEMPLATE = `あなたは家庭料理の専門家です。
 以下の食材を使って、家庭で作りやすい献立を提案してください。
 
