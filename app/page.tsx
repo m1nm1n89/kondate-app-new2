@@ -101,13 +101,23 @@ const buildAmazonSearchUrl = (keyword: string) =>
   `https://www.amazon.co.jp/s?k=${encodeURIComponent(keyword)}`;
 
 const buildRakutenSearchUrl = (keyword: string) => {
-  const encodedKeyword = encodeURIComponent(keyword);
-  const normalRakutenUrl = `https://search.rakuten.co.jp/search/mall/${encodedKeyword}/`;
-  if (!MOSHIMO_RAKUTEN_ID) {
+  const normalizedKeyword = keyword.trim();
+  const normalRakutenUrl = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(normalizedKeyword)}/`;
+  const id = MOSHIMO_RAKUTEN_ID?.trim();
+
+  console.log("[Rakuten Affiliate] NEXT_PUBLIC_MOSHIMO_RAKUTEN_ID:", id ?? "(undefined)");
+
+  if (!id) {
+    console.log("[Rakuten Affiliate] a_id is missing. Fallback to normal Rakuten URL:", normalRakutenUrl);
     return normalRakutenUrl;
   }
 
-  return `https://af.moshimo.com/af/c/click?a_id=${encodeURIComponent(MOSHIMO_RAKUTEN_ID)}&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fsearch.rakuten.co.jp%2Fsearch%2Fmall%2F${encodedKeyword}%2F`;
+  const rakutenSearchUrl = `https://search.rakuten.co.jp/search/mall/${normalizedKeyword}/`;
+  const affiliateUrl = `https://af.moshimo.com/af/c/click?a_id=${id}&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenSearchUrl)}`;
+
+  console.log("[Rakuten Affiliate] Built moshimo URL:", affiliateUrl);
+
+  return affiliateUrl;
 };
 
 export default function Home() {
