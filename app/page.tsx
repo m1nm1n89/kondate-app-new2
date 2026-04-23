@@ -332,8 +332,8 @@ export default function Home() {
         <h2 className="text-lg font-bold text-deepGreen">最近作った献立（履歴）</h2>
         {history.length > 0 ? (
           <ul className="mt-3 space-y-3">
-            {history.map((item) => {
-              const preview = item.suggestion.split("\n").find((line) => line.trim().length > 0) ?? "献立";
+            {history.map((item, index) => {
+              const historyNumber = history.length - index;
               return (
                 <li key={item.id}>
                   <button
@@ -341,7 +341,7 @@ export default function Home() {
                     onClick={() => handleSelectHistory(item)}
                     className="w-full rounded-xl border border-deepGreen/15 px-4 py-4 text-left transition hover:bg-deepGreen/5"
                   >
-                    <p className="text-base font-semibold text-deepGreen">{preview}</p>
+                    <p className="text-base font-semibold text-deepGreen">{`献立案${historyNumber}`}</p>
                     <p className="mt-1 text-sm text-deepGreen/70">{formatDateTime(item.createdAt)}</p>
                   </button>
                 </li>
