@@ -1,17 +1,157 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import IngredientInput from "@/components/IngredientInput";
 import MealSuggestion from "@/components/MealSuggestion";
 
 const MAX_LENGTH = 500;
 const ERROR_MESSAGE = "提案の取得に失敗しました。もう一度お試しください。";
+const HISTORY_STORAGE_KEY = "kondate_history_v1";
+const MAX_HISTORY_ITEMS = 5;
+
+type ShoppingItem = {
+  name: string;
+  amount: string;
+};
+
+type MealHistoryItem = {
+  id: string;
+  suggestion: string;
+  shoppingList: ShoppingItem[];
+  createdAt: string;
+};
+
+const createMealId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const normalizeShoppingList = (items: unknown): ShoppingItem[] => {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const name = typeof item.name === "string" ? item.name.trim() : "";
+      const amount = typeof item.amount === "string" ? item.amount.trim() : "";
+
+      if (!name) {
+        return null;
+      }
+
+      return {
+        name,
+        amount: amount || "適量"
+      };
+    })
+    .filter((item): item is ShoppingItem => item !== null);
+};
+
+const extractShoppingListFromSuggestion = (text: string): ShoppingItem[] => {
+  const lines = text
+    .split("\n")
+    .map((line) => line.replace(/^[\s\-*・\d.]+/, "").trim())
+    .filter(Boolean);
+
+  const unitPattern =
+    /(g|kg|ml|L|cc|個|枚|本|袋|パック|缶|大さじ|小さじ|カップ|適量|少々|ひとつまみ|1\/2|1\/4)/i;
+
+  const result: ShoppingItem[] = [];
+
+  for (const line of lines) {
+    if (!line.includes("：") && !line.includes(":")) {
+      continue;
+    }
+
+    const [rawName, ...rest] = line.split(/[:：]/);
+    const rawAmount = rest.join(" ").trim();
+    const name = rawName.trim();
+    if (!name || !rawAmount) {
+      continue;
+    }
+
+    if (!unitPattern.test(rawAmount)) {
+      continue;
+    }
+
+    result.push({ name, amount: rawAmount });
+  }
+
+  return result.slice(0, 20);
+};
+
+const formatDateTime = (iso: string) => {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleString("ja-JP", {
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+};
 
 export default function Home() {
   const [ingredients, setIngredients] = useState("");
-  const [suggestion, setSuggestion] = useState("");
+  const [currentMeal, setCurrentMeal] = useState<MealHistoryItem | null>(null);
+  const [history, setHistory] = useState<MealHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    try {
+      const rawHistory = window.localStorage.getItem(HISTORY_STORAGE_KEY);
+      if (!rawHistory) {
+        return;
+      }
+
+      const parsed = JSON.parse(rawHistory) as unknown;
+      if (!Array.isArray(parsed)) {
+        return;
+      }
+
+      const safeHistory = parsed
+        .map((item) => {
+          if (!item || typeof item !== "object") {
+            return null;
+          }
+
+          const id = typeof item.id === "string" ? item.id : createMealId();
+          const suggestion = typeof item.suggestion === "string" ? item.suggestion.trim() : "";
+          const createdAt =
+            typeof item.createdAt === "string" ? item.createdAt : new Date().toISOString();
+          const shoppingList = normalizeShoppingList((item as { shoppingList?: unknown }).shoppingList);
+
+          if (!suggestion) {
+            return null;
+          }
+
+          return { id, suggestion, shoppingList, createdAt };
+        })
+        .filter((item): item is MealHistoryItem => item !== null)
+        .slice(0, MAX_HISTORY_ITEMS);
+
+      setHistory(safeHistory);
+    } catch {
+      window.localStorage.removeItem(HISTORY_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+  }, [history]);
+
+  const shoppingList = useMemo(() => currentMeal?.shoppingList ?? [], [currentMeal]);
+
+  const saveMealToHistory = (meal: MealHistoryItem) => {
+    setHistory((prev) => [meal, ...prev.filter((item) => item.id !== meal.id)].slice(0, MAX_HISTORY_ITEMS));
+  };
 
   const handleSubmit = async () => {
     const trimmed = ingredients.trim();
@@ -22,7 +162,8 @@ export default function Home() {
 
     setIsLoading(true);
     setError("");
-    setSuggestion("");
+    setCurrentMeal(null);
+    setCheckedItems({});
 
     try {
       const response = await fetch("/api/suggest", {
@@ -33,14 +174,29 @@ export default function Home() {
         body: JSON.stringify({ ingredients: trimmed })
       });
 
-      const data = (await response.json()) as { suggestion?: string; error?: string };
+      const data = (await response.json()) as {
+        suggestion?: string;
+        shoppingList?: ShoppingItem[];
+        error?: string;
+      };
 
       if (!response.ok || !data.suggestion) {
         setError(ERROR_MESSAGE);
         return;
       }
 
-      setSuggestion(data.suggestion);
+      const nextMeal: MealHistoryItem = {
+        id: createMealId(),
+        suggestion: data.suggestion,
+        shoppingList:
+          normalizeShoppingList(data.shoppingList).length > 0
+            ? normalizeShoppingList(data.shoppingList)
+            : extractShoppingListFromSuggestion(data.suggestion),
+        createdAt: new Date().toISOString()
+      };
+
+      setCurrentMeal(nextMeal);
+      saveMealToHistory(nextMeal);
     } catch {
       setError(ERROR_MESSAGE);
     } finally {
@@ -49,8 +205,22 @@ export default function Home() {
   };
 
   const handleRetry = () => {
-    setSuggestion("");
+    setCurrentMeal(null);
     setError("");
+    setCheckedItems({});
+  };
+
+  const handleToggleShoppingItem = (index: number) => {
+    setCheckedItems((prev) => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
+  const handleSelectHistory = (item: MealHistoryItem) => {
+    setCurrentMeal(item);
+    setError("");
+    setCheckedItems({});
   };
 
   return (
@@ -68,8 +238,58 @@ export default function Home() {
         </div>
       ) : null}
 
-      {suggestion ? (
-        <MealSuggestion suggestion={suggestion} onRetry={handleRetry} />
+      {currentMeal ? (
+        <>
+          <MealSuggestion suggestion={currentMeal.suggestion} onRetry={handleRetry} />
+
+          <section className="mt-4 w-full rounded-2xl border border-terracotta/30 bg-white p-5 shadow-sm">
+            <h3 className="mb-3 text-lg font-bold text-deepGreen">お買い物リスト</h3>
+            {shoppingList.length > 0 ? (
+              <ul className="space-y-3">
+                {shoppingList.map((item, index) => {
+                  const checked = Boolean(checkedItems[index]);
+                  return (
+                    <li key={`${item.name}-${index}`}>
+                      <label
+                        className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border p-3 transition ${
+                          checked
+                            ? "border-deepGreen/20 bg-deepGreen/5"
+                            : "border-deepGreen/15 bg-white hover:bg-deepGreen/5"
+                        }`}
+                      >
+                        <span className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => handleToggleShoppingItem(index)}
+                            className="h-6 w-6 rounded border-deepGreen/40 text-terracotta"
+                          />
+                          <span className={checked ? "text-base text-deepGreen/60 line-through" : "text-base text-deepGreen"}>
+                            {item.name}
+                          </span>
+                        </span>
+                        <span className={checked ? "text-sm text-deepGreen/50 line-through" : "text-sm text-deepGreen/80"}>
+                          {item.amount}
+                        </span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="rounded-xl border border-dashed border-deepGreen/30 px-4 py-3 text-sm text-deepGreen/70">
+                買い足しが必要な材料はありません。
+              </p>
+            )}
+
+            <button
+              type="button"
+              className="mt-4 w-full rounded-xl border border-terracotta bg-terracotta/5 px-4 py-4 text-base font-semibold text-terracotta transition hover:bg-terracotta/10"
+            >
+              足りないものはネットでチェック
+            </button>
+          </section>
+        </>
       ) : (
         <IngredientInput
           ingredients={ingredients}
@@ -78,6 +298,31 @@ export default function Home() {
           onSubmit={handleSubmit}
         />
       )}
+
+      <section className="mt-8 w-full rounded-2xl border border-deepGreen/20 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-bold text-deepGreen">最近作った献立（履歴）</h2>
+        {history.length > 0 ? (
+          <ul className="mt-3 space-y-3">
+            {history.map((item) => {
+              const preview = item.suggestion.split("\n").find((line) => line.trim().length > 0) ?? "献立";
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectHistory(item)}
+                    className="w-full rounded-xl border border-deepGreen/15 px-4 py-4 text-left transition hover:bg-deepGreen/5"
+                  >
+                    <p className="text-base font-semibold text-deepGreen">{preview}</p>
+                    <p className="mt-1 text-sm text-deepGreen/70">{formatDateTime(item.createdAt)}</p>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-deepGreen/70">まだ履歴はありません。献立を作成するとここに保存されます。</p>
+        )}
+      </section>
     </main>
   );
 }
