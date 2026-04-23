@@ -102,16 +102,19 @@ const buildAmazonSearchUrl = (keyword: string) =>
 
 const buildRakutenSearchUrl = (keyword: string) => {
   const normalizedKeyword = keyword.trim();
-  const normalRakutenUrl = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(normalizedKeyword)}/`;
+  const normalRakutenUrl = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(normalizedKeyword)}`;
   const id = MOSHIMO_RAKUTEN_ID?.trim();
-  const affiliateBaseUrl = `https://af.moshimo.com/af/c/click?a_id=${id}&p_id=54&pc_id=54&pl_id=616`;
 
   if (!id) {
     return normalRakutenUrl;
   }
 
-  const searchUrl = `https://search.rakuten.co.jp/search/mall/${normalizedKeyword}/`;
-  return `${affiliateBaseUrl}&url=${encodeURIComponent(searchUrl)}`;
+  const encodedRakutenUrl = encodeURIComponent(
+    `https://search.rakuten.co.jp/search/mall/${normalizedKeyword}`
+  );
+  const finalUrl = `https://af.moshimo.com/af/c/click?a_id=${id}&p_id=54&pc_id=54&pl_id=616&url=${encodedRakutenUrl}`;
+
+  return finalUrl;
 };
 
 export default function Home() {
@@ -269,6 +272,7 @@ export default function Home() {
               <ul className="space-y-3">
                 {shoppingList.map((item, index) => {
                   const checked = Boolean(checkedItems[index]);
+                  const rakutenUrl = buildRakutenSearchUrl(item.name);
                   return (
                     <li key={`${item.name}-${index}`}>
                       <div
@@ -303,9 +307,12 @@ export default function Home() {
                               Amazon
                             </a>
                             <a
-                              href={buildRakutenSearchUrl(item.name)}
+                              href={rakutenUrl}
                               target="_blank"
                               rel="noopener noreferrer"
+                              onClick={() => {
+                                console.log("[Rakuten Affiliate] finalUrl:", rakutenUrl);
+                              }}
                               className="rounded-md border border-deepGreen/20 px-2 py-1 text-xs font-semibold text-deepGreen/80 transition hover:bg-deepGreen/10"
                             >
                               楽天
