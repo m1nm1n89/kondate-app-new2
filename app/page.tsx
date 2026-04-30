@@ -9,6 +9,7 @@ const ERROR_MESSAGE = "提案の取得に失敗しました。もう一度お試
 const HISTORY_STORAGE_KEY = "kondate_history_v1";
 const MAX_HISTORY_ITEMS = 10;
 const RAKUTEN_AFFILIATE_ID = process.env.NEXT_PUBLIC_RAKUTEN_AFFILIATE_ID;
+const AMAZON_ASSOCIATE_ID = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATE_ID;
 
 type ShoppingItem = {
   name: string;
@@ -97,8 +98,11 @@ const formatDateTime = (iso: string) => {
   });
 };
 
-const buildAmazonSearchUrl = (keyword: string) =>
-  `https://www.amazon.co.jp/s?k=${encodeURIComponent(keyword)}`;
+const buildAmazonSearchUrl = (keyword: string) => {
+  const tag = AMAZON_ASSOCIATE_ID?.trim();
+  const base = `https://www.amazon.co.jp/s?k=${encodeURIComponent(keyword)}`;
+  return tag ? `${base}&tag=${tag}` : base;
+};
 
 const buildRakutenSearchUrl = (keyword: string) => {
   const normalizedKeyword = keyword.trim();
