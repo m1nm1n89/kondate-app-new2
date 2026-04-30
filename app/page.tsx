@@ -8,7 +8,7 @@ const MAX_LENGTH = 500;
 const ERROR_MESSAGE = "提案の取得に失敗しました。もう一度お試しください。";
 const HISTORY_STORAGE_KEY = "kondate_history_v1";
 const MAX_HISTORY_ITEMS = 10;
-const MOSHIMO_RAKUTEN_ID = process.env.NEXT_PUBLIC_MOSHIMO_RAKUTEN_ID;
+const RAKUTEN_AFFILIATE_ID = process.env.NEXT_PUBLIC_RAKUTEN_AFFILIATE_ID;
 
 type ShoppingItem = {
   name: string;
@@ -102,19 +102,16 @@ const buildAmazonSearchUrl = (keyword: string) =>
 
 const buildRakutenSearchUrl = (keyword: string) => {
   const normalizedKeyword = keyword.trim();
-  const normalRakutenUrl = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(normalizedKeyword)}`;
-  const id = MOSHIMO_RAKUTEN_ID?.trim();
+  const id = RAKUTEN_AFFILIATE_ID?.trim();
 
   if (!id) {
-    return normalRakutenUrl;
+    return `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(normalizedKeyword)}/`;
   }
 
-  const encodedRakutenUrl = encodeURIComponent(
-    `https://search.rakuten.co.jp/search/mall/${normalizedKeyword}`
+  const pc = encodeURIComponent(
+    `https://search.rakuten.co.jp/search/mall/${normalizedKeyword}/`
   );
-  const finalUrl = `https://af.moshimo.com/af/c/click?a_id=${id}&p_id=54&pc_id=54&pl_id=616&url=${encodedRakutenUrl}`;
-
-  return finalUrl;
+  return `https://hb.afl.rakuten.co.jp/hgc/${id}/?pc=${pc}&link_type=hybrid_no_css`;
 };
 
 export default function Home() {
